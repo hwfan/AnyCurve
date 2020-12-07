@@ -1,6 +1,12 @@
 import pandas as pd
 import os
 import numpy as np
+import lmdb
+import pickle
+import base64
+def obj2bytes(obj):
+    return base64.b64encode(pickle.dumps(obj))
+
 class curvedb(object):
     '''
     database class for storing curve data.
@@ -22,9 +28,7 @@ class curvedb(object):
     def reset(self, force_clean=False):
         self.db = pd.DataFrame()
         if force_clean:
-            h5_store = pd.HDFStore(self.db_path)
-            h5_store.remove(self.db_name)
-            h5_store.close()
+            self.save()
 
     def get_db(self):
         return self.db
@@ -90,7 +94,14 @@ class curvedb(object):
     def save(self, path=''):
         if len(path) > 0:
             self.db_path = path
-        self.db.to_hdf(self.db_path, self.db_name)
+        env = lmdb.open(self.db_path)
+        txn = env.begin(write=True)
+        txn.put(key=self.db_name.encode(), value=obj2bytes(self.db))
+        txn.commit()
+        env.close()
 
     def load(self):
-        self.db = pd.read_hdf(self.db_path, self.db_name)
+        env = lmdb.open(self.db_path)
+        txn = env.begin(write=False)
+        self.db = obj2bytes(txn.get(self.db_name.encode()))
+        env.close()

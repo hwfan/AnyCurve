@@ -1,5 +1,5 @@
-from database import curvedb
-from plot import curvedrawer
+from .database import curvedb
+from .plot import curvedrawer
 
 class curve(curvedb, curvedrawer):
     def __init__(self, db_path='', db_name='curvedb', figsize=(15, 12)):
@@ -22,10 +22,11 @@ class curve(curvedb, curvedrawer):
             self.daemon_counter = 0
             self.daemon_interval = interval
         else:
-            self.counter += 1
-            if self.counter == self.daemon_interval:
-                self.counter = 0
+            if self.daemon_counter == self.daemon_interval:
+                self.daemon_counter = 1
                 return True
+            else:
+                self.daemon_counter += 1
         return False
         
 class losscurve(curve):
@@ -52,19 +53,20 @@ class losscurve(curve):
         if self.internal_iter:
             self.set_xlabel('iteration')
 
-    def step(self):
+    def step(self, no_step=False):
         self.metadata.add_value({'iteration': self.iteration})
-        self.iteration += self.stepsize
-        if self.states.check_index(0):
-            states = self.states.get_value(0)
-            states['cur_iter'] = self.iteration
-            self.states.modify_value(0, states)
-        else:
-            self.states.add_value({'cur_iter': self.iteration})
+        if not no_step:
+            self.iteration += self.stepsize
+            if self.states.check_index(0):
+                states = self.states.get_value(0)
+                states['cur_iter'] = self.iteration
+                self.states.modify_value(0, states)
+            else:
+                self.states.add_value({'cur_iter': self.iteration})
     
-    def log(self, dict_value):
+    def log(self, dict_value, no_step=False):
         curve.log(self, dict_value)
-        self.step()
+        self.step(no_step=no_step)
 
     def reset(self, force_clean=False):
         curve.reset(self, force_clean=force_clean)
@@ -105,10 +107,10 @@ if __name__ == '__main__':
     curve_handler.set_internal()
     curve_handler.set_ylabel('loss', False)
     curve_handler.set_ylabel('acc', True)
-    curve_handler.daemon(True, 1)
+    curve_handler.daemon(True, 10)
     for iteration in tqdm(range(501)):
         curve_handler.clean()
-        curve_handler.log({'loss_A': 0.11*np.exp(-iteration/500), 'loss_B': 0.11*np.exp(-iteration/1000)})
+        curve_handler.log({'loss_A': 0.11*np.exp(-iteration/500), 'loss_B': 0.11*np.exp(-iteration/1000)}, no_step=iteration % 10 == 0)
         if iteration % 10 == 0:
             curve_handler.log({'acc_A': 1 / (1 + np.exp(-iteration/500)), 'acc_B': 1 / (1 + np.exp(-iteration/1000))})
         
@@ -123,7 +125,6 @@ if __name__ == '__main__':
             curve_handler.twin()
             curve_handler.reset_choice()
             curve_handler.legend(inside=False)
-
-    curve_handler.synchronize()
-    curve_handler.render('test.png')
+            curve_handler.synchronize()
+            curve_handler.render('test.png')
     
