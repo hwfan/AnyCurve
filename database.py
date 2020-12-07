@@ -5,27 +5,29 @@ class curvedb(object):
     '''
     database class for storing curve data.
     '''
-    def __init__(self, db_path, db_name='curvedb'):
+    def __init__(self, db_path=None, db_name='curvedb'):
         self.db_name = db_name
-        self.initialize(db_path)
-    
-    def initialize(self, db_path):
-        assert len(db_path) > 0
-        if os.path.exists(db_path):
-            self.load(db_path)
-        else:
-            self.reset()
-            self.save(db_path, True)
+        self.db_path = db_path
+        assert self.db_path is not None
+        assert len(self.db_path) > 0
+        self.initialize()
+        
+    def initialize(self):
+        try:
+            self.load()
+        except:
+            self.db = pd.DataFrame()
+            self.save()
 
-    def reset(self):
+    def reset(self, force_clean=False):
         self.db = pd.DataFrame()
+        if force_clean:
+            h5_store = pd.HDFStore(self.db_path)
+            h5_store.remove(self.db_name)
+            h5_store.close()
 
     def get_db(self):
         return self.db
-
-    @property
-    def cursor(self):
-        return self.db.shape[0]
 
     @property
     def keys(self):
@@ -50,6 +52,12 @@ class curvedb(object):
     def search_value(self, key, target_value):
         return self.db[key] == target_value
 
+    def check_index(self, index):
+        return index < len(self.db)
+
+    def get_value(self, index):
+        return self.db.loc[index]
+
     def add_value(self, dict_value):
         assert isinstance(dict_value, dict), 'The input of add_value should be a dict variable!'
 
@@ -60,8 +68,8 @@ class curvedb(object):
         for key in self.keys:
             if key not in dict_value:
                 dict_value[key] = np.nan
-
-        self.db.loc[self.cursor] = dict_value
+                
+        self.db = self.db.append([dict_value], ignore_index=True)
 
     def modify_value(self, index, dict_value):
         self.db.loc[index] = dict_value
@@ -75,16 +83,10 @@ class curvedb(object):
     def show(self):
         print(self.db)
 
-    def save(self, path='', change_path=False):
-        if len(path) == 0:
-            self.db.to_hdf(self.default_path, self.db_name)
-        elif change_path:
-            self.db.to_hdf(path, self.db_name)
-            self.default_path = path
-        else:
-            self.db.to_hdf(path, self.db_name)
+    def save(self, path=''):
+        if len(path) > 0:
+            self.db_path = path
+        self.db.to_hdf(self.db_path, self.db_name)
 
-    def load(self, path, change_path=True):
-        self.db = pd.read_hdf(path, self.db_name)
-        if change_path:
-            self.default_path = path
+    def load(self):
+        self.db = pd.read_hdf(self.db_path, self.db_name)

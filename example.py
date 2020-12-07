@@ -2,7 +2,6 @@ from database import curvedb
 from plot import curve
 import ipdb
 curve_data = curvedb('debug_data')
-curve_data.reset()
 curve_data.add_value({'x': 0, 'y': 0})
 curve_data.add_value({'x': 1, 'y': 0})
 curve_data.add_value({'x': 2, 'y': 1})

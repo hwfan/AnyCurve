@@ -1,14 +1,14 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import itertools
-import ipdb
 import os
+import random
 class curvedrawer(object):
-    def __init__(self, figsize):
-        self.colorbank = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+    def __init__(self, figsize=(15, 12), static=False):
+        self.colorbank = ['red', 'blue', 'green', 'purple', 'brown', 'gray', 'orange', 'olive', 'cyan', 'pink']
         self.linestyle = ['solid', 'dotted', 'dashed', 'dashdot']
-        self.pointname = ['point', 'triangle_down', 'triangle_up', 'octagon', 'square', 'pentagon', 'star', 'hexagon1', 'hexagon2', 'plus', 'cross', 'diamond', 'circle']
-        self.pointstyle = ['.', 'v', '^', '8', 's', 'p', '*', 'h', 'H', '+', 'x', 'D', 'o']
+        self.pointname = ['point', 'triangle_down', 'triangle_up', 'octagon', 'square', 'pentagon', 'star', 'hexagon1', 'hexagon2', 'cross', 'diamond', 'circle', 'plus']
+        self.pointstyle = ['.', 'v', '^', '8', 's', 'p', '*', 'h', 'H', 'x', 'D', 'o', '+']
         assert len(self.pointname) == len(self.pointstyle)
         self.pointdict = dict()
         for point_idx, pointname in enumerate(self.pointname):
@@ -24,7 +24,10 @@ class curvedrawer(object):
         self.ori_figure = self.panel.add_subplot(111)
         self.figsize = figsize
         self.twin_figure = None
-
+        self.static = static
+    def shuffle(self):
+        random.shuffle(self.choices)
+        
     def drawcurve(self, x, y, color='blue', linestyle='solid', pointstyle='point', x_name=None, y_name=None, y_label=None):
         self.figure = self.ori_figure if not self.twin_state else self.twin_figure
         x_to_draw = np.array(x)
@@ -35,6 +38,10 @@ class curvedrawer(object):
         assert linestyle in self.linestyle, 'linestyle is not in internal linestyle bank!'
         assert pointstyle in self.pointname, 'pointstyle is not in internal pointstyle bank!'
         assert len(y_to_draw) == len(x_to_draw), 'the length of x is not equal to the length of y!'
+        valid = np.logical_and(np.logical_not(np.isnan(x_to_draw)), np.logical_not(np.isnan(y_to_draw)))
+        x_to_draw = x_to_draw[valid]
+        y_to_draw = y_to_draw[valid]
+
         self.figure.plot(x_to_draw, y_to_draw, color=color, linestyle=linestyle, marker=self.pointdict[pointstyle], label=y_label)
         if x_name is not None:
             self.figure.set_xlabel(x_name)
@@ -65,12 +72,22 @@ class curvedrawer(object):
                 break
         return
 
-    def legend(self, inside=True, left_offset=(-0.1, 1), right_offset=(1.1, 1)):
+    def legend(self, inside=True, left_offset=None, right_offset=None):
         if inside:
-            self.ori_figure.legend()
+            if left_offset is None:
+                left_offset = (0, 1)
+            if right_offset is None:
+                right_offset = (1, 1)
+
+            self.ori_figure.legend(bbox_to_anchor=left_offset, loc=2)
             if self.twin_figure is not None:
-                self.twin_figure.legend()
+                self.twin_figure.legend(bbox_to_anchor=right_offset, loc=1)
         else:
+            if left_offset is None:
+                left_offset = (-0.12, 1.05)
+            if right_offset is None:
+                right_offset = (1.12, 1.05)
+
             self.ori_figure.legend(bbox_to_anchor=left_offset, loc=2)
             if self.twin_figure is not None:
                 self.twin_figure.legend(bbox_to_anchor=right_offset, loc=1)
@@ -86,7 +103,7 @@ class curvedrawer(object):
     def show(self):
         plt.show()
 
-    def save(self, filename):
+    def render(self, filename):
         dirname = os.path.dirname(os.path.abspath(filename))
         os.makedirs(dirname, exist_ok=True)
         self.ori_figure.figure.savefig(filename)
