@@ -143,13 +143,13 @@ if __name__ == '__main__':
     a = curvedrawer((20, 12))
     # a.drawcurve([1, 2], [3, 4], 'red', 'solid', 'point', 'x_axis', 'y_axis', 'good')
 
-    a.drawcurves([1, 2, 3], [[3,5,7], [4,6,8], [5,7,9]], 'x_axis', 'y_axis', ['good', 'bad', 'ugly'])
+    a.drawcurves([1, 2, 3], [[3,5,7], [4,6,8], [5,7,9]], ['good', 'bad', 'ugly'])
     a.twin()
-    a.drawcurves([1, 2, 3], [[3,1,-1], [2,0,-2], [1,-1,-3]], 'x_axis', 'another_y_axis', ['good', 'bad', 'ugly'])
+    a.drawcurves([1, 2, 3], [[3,1,-1], [2,0,-2], [1,-1,-3]], ['good', 'bad', 'ugly'])
     a.twin()
-    a.drawcurves([1, 2, 3], [[4,6,8], [5,7,9], [6,8,10]], 'x_axis', 'y_axis', ['good', 'bad', 'ugly'])
+    a.drawcurves([1, 2, 3], [[4,6,8], [5,7,9], [6,8,10]], ['good', 'bad', 'ugly'])
     a.twin()
-    a.drawcurves([1, 2, 3], [[2,0,-2], [1,-1,-3], [0,-2,-4]], 'x_axis', 'another_y_axis', ['good', 'bad', 'ugly'])
+    a.drawcurves([1, 2, 3], [[2,0,-2], [1,-1,-3], [0,-2,-4]], ['good', 'bad', 'ugly'])
 
     # a.drawcurves([1, 2, 3], [[3,5], [4,6], [5,7]], 'x_axis', 'y_axis', ['good', 'bad'])
     # a.twin()

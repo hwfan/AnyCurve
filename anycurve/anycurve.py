@@ -16,6 +16,18 @@ class curve(curvedb, curvedrawer):
     def draw(self, attr_x, attr_y, label=None):
         self.drawcurves(self.get_column(attr_x), self.get_column(attr_y), label)
 
+    def daemon(self, start=False, interval=1):
+        if start:
+            assert interval >= 1
+            self.daemon_counter = 0
+            self.daemon_interval = interval
+        else:
+            self.counter += 1
+            if self.counter == self.daemon_interval:
+                self.counter = 0
+                return True
+        return False
+        
 class losscurve(curve):
     def __init__(self, db_path, db_name, load_iter=False, figsize=(15, 12)):
         curve.__init__(self, db_path=db_path, db_name=db_name, figsize=figsize)
@@ -93,21 +105,25 @@ if __name__ == '__main__':
     curve_handler.set_internal()
     curve_handler.set_ylabel('loss', False)
     curve_handler.set_ylabel('acc', True)
+    curve_handler.daemon(True, 1)
     for iteration in tqdm(range(501)):
-        # time.sleep(1)
         curve_handler.clean()
         curve_handler.log({'loss_A': 0.11*np.exp(-iteration/500), 'loss_B': 0.11*np.exp(-iteration/1000)})
-        curve_handler.draw('loss_A', 'model A')
-        curve_handler.draw('loss_B', 'model B')
         if iteration % 10 == 0:
             curve_handler.log({'acc_A': 1 / (1 + np.exp(-iteration/500)), 'acc_B': 1 / (1 + np.exp(-iteration/1000))})
+        
+        to_draw = curve_handler.daemon()
+        if to_draw:
+            curve_handler.draw('loss_A', 'model A')
+            curve_handler.draw('loss_B', 'model B')
             curve_handler.twin()
             curve_handler.clean()
             curve_handler.draw('acc_A', 'model A')
             curve_handler.draw('acc_B', 'model B')
             curve_handler.twin()
-        curve_handler.reset_choice()
-        curve_handler.legend(inside=False)
+            curve_handler.reset_choice()
+            curve_handler.legend(inside=False)
+
     curve_handler.synchronize()
     curve_handler.render('test.png')
     
