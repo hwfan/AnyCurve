@@ -3,8 +3,11 @@ import numpy as np
 import itertools
 import os
 import random
+import warnings
+warnings.filterwarnings('ignore')
+
 class curvedrawer(object):
-    def __init__(self, figsize=(15, 12), static=False):
+    def __init__(self, figsize=(15, 12)):
         self.colorbank = ['red', 'blue', 'green', 'purple', 'brown', 'gray', 'orange', 'olive', 'cyan', 'pink']
         self.linestyle = ['solid', 'dotted', 'dashed', 'dashdot']
         self.pointname = ['point', 'triangle_down', 'triangle_up', 'octagon', 'square', 'pentagon', 'star', 'hexagon1', 'hexagon2', 'cross', 'diamond', 'circle', 'plus']
@@ -24,12 +27,33 @@ class curvedrawer(object):
         self.ori_figure = self.panel.add_subplot(111)
         self.figsize = figsize
         self.twin_figure = None
-        self.static = static
+        self.x_label = None
+        self.y_label = None
+        self.y_twin_label = None
+
     def shuffle(self):
         random.shuffle(self.choices)
-        
-    def drawcurve(self, x, y, color='blue', linestyle='solid', pointstyle='point', x_name=None, y_name=None, y_label=None):
-        self.figure = self.ori_figure if not self.twin_state else self.twin_figure
+    
+    def reset_choice(self):
+        self.choice_cursor = 0
+
+    def set_xlabel(self, x_name=None):
+        if x_name is not None:
+            self.ori_figure.set_xlabel(x_name)
+            self.x_label = x_name
+
+    def set_ylabel(self, y_name=None, twin_state=False):
+        if y_name is not None:
+            if twin_state:
+                if self.twin_figure is None:
+                    self.twin_figure = self.ori_figure.twinx()
+                self.twin_figure.set_ylabel(y_name)
+                self.y_twin_label = y_name
+            else:
+                self.ori_figure.set_ylabel(y_name)
+                self.y_label = y_name
+
+    def drawcurve(self, x, y, color='blue', linestyle='solid', pointstyle='point', y_label=None): 
         x_to_draw = np.array(x)
         y_to_draw = np.array(y)
         assert x_to_draw.ndim == 1, 'x should be an 1D array!'
@@ -41,15 +65,14 @@ class curvedrawer(object):
         valid = np.logical_and(np.logical_not(np.isnan(x_to_draw)), np.logical_not(np.isnan(y_to_draw)))
         x_to_draw = x_to_draw[valid]
         y_to_draw = y_to_draw[valid]
-
-        self.figure.plot(x_to_draw, y_to_draw, color=color, linestyle=linestyle, marker=self.pointdict[pointstyle], label=y_label)
-        if x_name is not None:
-            self.figure.set_xlabel(x_name)
-        if y_name is not None:
-            self.figure.set_ylabel(y_name)
+        
+        if self.twin_state:
+            self.twin_figure.plot(x_to_draw, y_to_draw, color=color, linestyle=linestyle, marker=self.pointdict[pointstyle], label=y_label)
+        else:
+            self.ori_figure.plot(x_to_draw, y_to_draw, color=color, linestyle=linestyle, marker=self.pointdict[pointstyle], label=y_label)
         return
 
-    def drawcurves(self, x, y, x_name=None, y_name=None, y_labels=None):
+    def drawcurves(self, x, y, y_labels=None):
         x_to_draw = np.array(x)
         y_to_draw = np.array(y)
         
@@ -63,15 +86,23 @@ class curvedrawer(object):
         assert y_to_draw.shape[1] <= self.choice_num, 'anycurve now only supports {:d} types of curve while the number of input curves is {:d}.'.format(self.choice_num, y_to_draw.shape[1])
         y_cursor = 0
         for pointstyle, linestyle, color in self.choices[self.choice_cursor:]:
-            x_name_used = None if y_cursor != 0 or self.twin_state else x_name
             y_label_used = None if y_labels is None else y_labels[y_cursor]
-            self.drawcurve(x_to_draw, y_to_draw[:, y_cursor], color=color, linestyle=linestyle, pointstyle=pointstyle, x_name=x_name_used, y_name=y_name, y_label=y_label_used)
+            self.drawcurve(x_to_draw, y_to_draw[:, y_cursor], color=color, linestyle=linestyle, pointstyle=pointstyle, y_label=y_label_used)
             self.choice_cursor += 1
             y_cursor += 1
             if y_cursor == y_to_draw.shape[1]:
                 break
-        return
 
+    def clean(self):
+        if self.twin_state:
+            self.twin_figure.cla()
+        else:
+            self.ori_figure.cla() 
+        self.set_xlabel(self.x_label)
+        self.set_ylabel(self.y_label, False)
+        if self.y_twin_label is not None:
+            self.set_ylabel(self.y_twin_label, True)
+            
     def legend(self, inside=True, left_offset=None, right_offset=None):
         if inside:
             if left_offset is None:
@@ -92,22 +123,21 @@ class curvedrawer(object):
             if self.twin_figure is not None:
                 self.twin_figure.legend(bbox_to_anchor=right_offset, loc=1)
 
+    def show(self):
+        plt.show()
+    
     def twin(self):
         if not self.twin_state:
             if self.twin_figure is None:
-                self.twin_figure = self.figure.twinx()
+                self.twin_figure = self.ori_figure.twinx()
             self.twin_state = True
         else:
             self.twin_state = False
-
-    def show(self):
-        plt.show()
 
     def render(self, filename):
         dirname = os.path.dirname(os.path.abspath(filename))
         os.makedirs(dirname, exist_ok=True)
         self.ori_figure.figure.savefig(filename)
-        return
 
 if __name__ == '__main__':
     a = curvedrawer((20, 12))

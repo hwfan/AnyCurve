@@ -2,23 +2,23 @@ from database import curvedb
 from plot import curvedrawer
 
 class curve(curvedb, curvedrawer):
-    def __init__(self, db_path='', db_name='curvedb', figsize=(15, 12), static=False):
+    def __init__(self, db_path='', db_name='curvedb', figsize=(15, 12)):
         curvedb.__init__(self, db_path=db_path, db_name=db_name)
-        curvedrawer.__init__(self, figsize=figsize, static=static)
+        curvedrawer.__init__(self, figsize=figsize)
 
     def show(self):
         curvedb.show(self)
         curvedrawer.show(self)
-
+    
     def log(self, dict_value):
         self.add_value(dict_value)
     
     def draw(self, attr_x, attr_y, label=None):
-        self.drawcurves(self.get_column(attr_x), self.get_column(attr_y), attr_x, attr_y, label)
+        self.drawcurves(self.get_column(attr_x), self.get_column(attr_y), label)
 
 class losscurve(curve):
-    def __init__(self, db_path, db_name, load_iter=False, figsize=(15, 12), static=False):
-        curve.__init__(self, db_path=db_path, db_name=db_name, figsize=figsize, static=static)
+    def __init__(self, db_path, db_name, load_iter=False, figsize=(15, 12)):
+        curve.__init__(self, db_path=db_path, db_name=db_name, figsize=figsize)
         self.iteration = 0
         self.stepsize = 1
         self.metadata = curvedb(db_path, 'metadata')
@@ -37,6 +37,8 @@ class losscurve(curve):
 
     def set_internal(self, state=True):
         self.internal_iter = state
+        if self.internal_iter:
+            self.set_xlabel('iteration')
 
     def step(self):
         self.metadata.add_value({'iteration': self.iteration})
@@ -65,7 +67,7 @@ class losscurve(curve):
         curvedrawer.show(self)
         
     def draw_internal(self, attr=None, label=None):
-        self.drawcurves(self.metadata.get_column('iteration'), self.get_column(attr), 'iteration', attr, label)
+        self.drawcurves(self.metadata.get_column('iteration'), self.get_column(attr), label)
 
     def draw_external(self, attr_x=None, attr_y=None, label=None):
         curve.draw(self, attr_x, attr_y, label)
@@ -82,20 +84,30 @@ class losscurve(curve):
         self.states.save()
 
 if __name__ == '__main__':
+    import time
     import ipdb
     import numpy as np
     from tqdm import tqdm
     curve_handler = losscurve(db_path='debug', db_name='data', figsize=(20, 12))
     curve_handler.reset(True)
     curve_handler.set_internal()
-    for iteration in tqdm(range(5001)):
-        curve_handler.log({'loss': 0.11*np.exp(-iteration/500)})
-        if iteration % 250 == 0:
-            curve_handler.log({'acc': 1 / (1 + np.exp(-iteration/500))})
+    curve_handler.set_ylabel('loss', False)
+    curve_handler.set_ylabel('acc', True)
+    for iteration in tqdm(range(501)):
+        # time.sleep(1)
+        curve_handler.clean()
+        curve_handler.log({'loss_A': 0.11*np.exp(-iteration/500), 'loss_B': 0.11*np.exp(-iteration/1000)})
+        curve_handler.draw('loss_A', 'model A')
+        curve_handler.draw('loss_B', 'model B')
+        if iteration % 10 == 0:
+            curve_handler.log({'acc_A': 1 / (1 + np.exp(-iteration/500)), 'acc_B': 1 / (1 + np.exp(-iteration/1000))})
+            curve_handler.twin()
+            curve_handler.clean()
+            curve_handler.draw('acc_A', 'model A')
+            curve_handler.draw('acc_B', 'model B')
+            curve_handler.twin()
+        curve_handler.reset_choice()
+        curve_handler.legend(inside=False)
     curve_handler.synchronize()
-
-    curve_handler.draw('loss', 'loss_curve')
-    curve_handler.twin()
-    curve_handler.draw('acc', 'acc_curve')
-    curve_handler.legend(inside=False)
     curve_handler.render('test.png')
+    

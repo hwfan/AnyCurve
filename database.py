@@ -33,6 +33,10 @@ class curvedb(object):
     def keys(self):
         return list(self.db.keys())
     
+    @property
+    def cursor(self):
+        return len(self.db)
+
     def get_column(self, key):
         return self.db[key].to_numpy()
 
@@ -68,7 +72,7 @@ class curvedb(object):
         for key in self.keys:
             if key not in dict_value:
                 dict_value[key] = np.nan
-                
+
         self.db = self.db.append([dict_value], ignore_index=True)
 
     def modify_value(self, index, dict_value):
