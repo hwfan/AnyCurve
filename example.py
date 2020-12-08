@@ -12,13 +12,13 @@ if __name__ == '__main__':
     curve_handler.set_ylabel('acc', True)
     curve_handler.daemon(True, 10)
     for iteration in tqdm(range(501)):
-        curve_handler.clean()
         curve_handler.log({'loss_A': 0.11*np.exp(-iteration/500), 'loss_B': 0.11*np.exp(-iteration/1000)}, no_step=iteration % 10 == 0)
         if iteration % 10 == 0:
             curve_handler.log({'acc_A': 1 / (1 + np.exp(-iteration/500)), 'acc_B': 1 / (1 + np.exp(-iteration/1000))})
         
         to_draw = curve_handler.daemon()
         if to_draw:
+            curve_handler.clean()
             curve_handler.draw('loss_A', 'model A')
             curve_handler.draw('loss_B', 'model B')
             curve_handler.twin()

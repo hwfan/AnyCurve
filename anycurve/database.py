@@ -6,6 +6,8 @@ import pickle
 import base64
 def obj2bytes(obj):
     return base64.b64encode(pickle.dumps(obj))
+def str2obj(str):
+    return pickle.loads(base64.b64decode(str))
 
 class curvedb(object):
     '''
@@ -24,7 +26,7 @@ class curvedb(object):
         except:
             self.db = pd.DataFrame()
             self.save()
-
+        
     def reset(self, force_clean=False):
         self.db = pd.DataFrame()
         if force_clean:
@@ -99,9 +101,11 @@ class curvedb(object):
         txn.put(key=self.db_name.encode(), value=obj2bytes(self.db))
         txn.commit()
         env.close()
+        return
 
     def load(self):
         env = lmdb.open(self.db_path)
         txn = env.begin(write=False)
-        self.db = obj2bytes(txn.get(self.db_name.encode()))
+        self.db = str2obj(txn.get(self.db_name.encode()).decode())
         env.close()
+        return
