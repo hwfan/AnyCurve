@@ -96,7 +96,7 @@ class curvedb(object):
     def save(self, path=''):
         if len(path) > 0:
             self.db_path = path
-        env = lmdb.open(self.db_path)
+        env = lmdb.open(self.db_path, map_size=int(1e12))
         txn = env.begin(write=True)
         txn.put(key=self.db_name.encode(), value=obj2bytes(self.db))
         txn.commit()
@@ -104,7 +104,7 @@ class curvedb(object):
         return
 
     def load(self):
-        env = lmdb.open(self.db_path)
+        env = lmdb.open(self.db_path, map_size=int(1e12))
         txn = env.begin(write=False)
         self.db = str2obj(txn.get(self.db_name.encode()).decode())
         env.close()
